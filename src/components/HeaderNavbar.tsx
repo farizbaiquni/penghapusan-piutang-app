@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { FileText, User, LogOut, Menu, X } from "lucide-react";
+import { FileText, User, LogOut, ChevronDown, UserCircle } from "lucide-react";
 
-export default function HeaderNavbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+interface HeaderNavbarProps {
+  role: "SKPD" | "BPKAD" | "INSPEKTORAT";
+  onRoleChange: (role: "SKPD" | "BPKAD" | "INSPEKTORAT") => void;
+}
+
+export default function HeaderNavbar({ role, onRoleChange }: HeaderNavbarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
     };
@@ -21,20 +22,23 @@ export default function HeaderNavbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const roleDisplay = {
+    SKPD: "SKPD",
+    BPKAD: "BPKAD",
+    INSPEKTORAT: "Inspektorat",
+  };
 
-  const handleLogout = () => {
-    if (confirm("Apakah Anda yakin ingin keluar?")) {
-      console.log("User logged out");
-    }
+  const roleFull = {
+    SKPD: "SKPD (Pengguna Anggaran)",
+    BPKAD: "BPKAD / PPKD",
+    INSPEKTORAT: "Inspektorat Daerah",
+  };
+
+  const nextRole = () => {
+    const order: ("SKPD" | "BPKAD" | "INSPEKTORAT")[] = ["SKPD", "BPKAD", "INSPEKTORAT"];
+    const currentIdx = order.indexOf(role);
+    const next = order[(currentIdx + 1) % order.length];
+    onRoleChange(next);
   };
 
   return (
@@ -43,33 +47,47 @@ export default function HeaderNavbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo / Brand */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <div className="bg-primary p-2 rounded-md shadow-sm">
-                <FileText className="w-5 h-5 text-white" />
+                <FileText className="w-5 h-5 text-white" strokeWidth={1.75} />
               </div>
-              <div>
-                <span className="text-base font-semibold text-primary">
-                  Piutang Daerah
-                </span>
-                <span className="hidden sm:inline text-xs text-gray-400 ml-2">
-                  Kabupaten Kendal
-                </span>
-              </div>
+              <span className="text-base font-semibold text-primary whitespace-nowrap">SIMPUL KENDAL</span>
+              <span className="hidden md:inline text-xs text-gray-400 ml-1">Kab. Kendal</span>
             </div>
 
-            {/* User Menu */}
-            <div className="flex items-center gap-3">
+            {/* Kanan: Role Selector + User Menu */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Role Selector */}
+              <div className="relative">
+                <button
+                  onClick={nextRole}
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-sm font-medium text-gray-700 transition whitespace-nowrap"
+                  aria-label="Ganti role"
+                >
+                  <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.75} />
+                  {/* Teks full hanya di lg ke atas */}
+                  <span className="hidden lg:inline">{roleFull[role]}</span>
+                  {/* Teks singkat di md */}
+                  <span className="hidden sm:inline lg:hidden">{roleDisplay[role]}</span>
+                  {/* Ikon chevron hanya di lg ke atas */}
+                  <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 hidden lg:block" />
+                </button>
+              </div>
+
+              {/* User Menu */}
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary"
-                  aria-label="Menu pengguna"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md text-gray-600 hover:bg-gray-100 transition"
                 >
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-sm">
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-4 h-4 text-white" strokeWidth={1.75} />
                   </div>
-                  <span className="hidden sm:inline text-sm font-medium text-gray-700">
-                    Admin User
+                  {/* Nama user hanya tampil di lg ke atas */}
+                  <span className="hidden lg:inline text-sm font-medium text-gray-700">
+                    {role === "SKPD" && "Andi Saputra"}
+                    {role === "BPKAD" && "Budi Santoso"}
+                    {role === "INSPEKTORAT" && "Siti Nurjanah"}
                   </span>
                 </button>
 
@@ -77,67 +95,29 @@ export default function HeaderNavbar() {
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50 animate-fade-in">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-800">
-                        Admin User
+                        {role === "SKPD" && "Andi Saputra"}
+                        {role === "BPKAD" && "Budi Santoso"}
+                        {role === "INSPEKTORAT" && "Siti Nurjanah"}
                       </p>
                       <p className="text-xs text-gray-500">
-                        admin@kendalkab.go.id
+                        {role === "SKPD" && "skpd@kendalkab.go.id"}
+                        {role === "BPKAD" && "bpkad@kendalkab.go.id"}
+                        {role === "INSPEKTORAT" && "inspektorat@kendalkab.go.id"}
                       </p>
                     </div>
                     <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
+                      onClick={() => alert("Logout")}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-4 h-4" strokeWidth={1.75} />
                       Logout
                     </button>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Menu navigasi"
-            >
-              {mobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
-            </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white animate-fade-in">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              <div className="flex items-center gap-3 px-3 py-3 border-b border-gray-100 mb-2">
-                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-800">
-                    Admin User
-                  </p>
-                  <p className="text-xs text-gray-500">admin@kendalkab.go.id</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50"
-              >
-                <LogOut className="w-5 h-5" />
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Breadcrumb */}
@@ -145,7 +125,9 @@ export default function HeaderNavbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center gap-2 text-sm">
             <span className="text-primary font-medium">
-              Usulan Penghapusan Piutang
+              {role === "SKPD" && "SKPD: Pengajuan Penghapusan Piutang"}
+              {role === "BPKAD" && "BPKAD: Verifikasi dan Penetapan"}
+              {role === "INSPEKTORAT" && "Inspektorat: Reviu dan Rekomendasi"}
             </span>
           </div>
         </div>

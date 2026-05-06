@@ -12,16 +12,38 @@ import {
 } from "lucide-react";
 
 type DashboardContentProps = {
-  usulanList: UsulanPiutang[];
-  formatRupiah: (angka: number) => string;
-  useShortFormat: boolean;
+  usulanList?: UsulanPiutang[];
+  formatRupiah?: (angka: number) => string;
+  useShortFormat?: boolean;
+  role?: "SKPD" | "BPKAD" | "INSPEKTORAT";
 };
 
 export default function DashboardContent({
-  usulanList,
+  usulanList = [],
   formatRupiah,
-  useShortFormat,
+  useShortFormat = true,
+  role = "SKPD",
 }: DashboardContentProps) {
+  // Helper format rupiah jika tidak disediakan dari parent
+  const formatRupiahLocal = (angka: number): string => {
+    if (useShortFormat) {
+      if (angka === 0) return "Rp 0";
+      const value = Math.abs(angka);
+      if (value >= 1_000_000_000_000) return `Rp ${(value / 1_000_000_000_000).toFixed(2)} T`;
+      if (value >= 1_000_000_000) return `Rp ${(value / 1_000_000_000).toFixed(2)} M`;
+      if (value >= 1_000_000) return `Rp ${(value / 1_000_000).toFixed(2)} Jt`;
+      if (value >= 1_000) return `Rp ${(value / 1_000).toFixed(2)} Rb`;
+      return `Rp ${value.toLocaleString("id-ID")}`;
+    }
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(angka);
+  };
+
+  const displayFormat = formatRupiah || formatRupiahLocal;
+
   const totalPokok = usulanList.reduce((sum, item) => sum + item.pokok, 0);
   const totalDenda = usulanList.reduce((sum, item) => sum + item.denda, 0);
   const totalKeseluruhan = usulanList.reduce(
@@ -47,7 +69,10 @@ export default function DashboardContent({
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Ringkasan dan statistik usulan penghapusan piutang daerah
+          Ringkasan dan statistik usulan penghapusan piutang daerah - Role:{" "}
+          {role === "SKPD" && "SKPD Teknis"}
+          {role === "BPKAD" && "BPKAD / PPKD"}
+          {role === "INSPEKTORAT" && "Inspektorat Daerah"}
         </p>
       </div>
 
@@ -75,7 +100,7 @@ export default function DashboardContent({
                 Total Pokok
               </p>
               <p className="text-xl font-bold text-green-700 mt-1">
-                {formatRupiah(totalPokok)}
+                {displayFormat(totalPokok)}
               </p>
               <p className="text-xs text-gray-400 mt-1">Nilai pokok piutang</p>
             </div>
@@ -91,7 +116,7 @@ export default function DashboardContent({
                 Total Denda
               </p>
               <p className="text-xl font-bold text-orange-700 mt-1">
-                {formatRupiah(totalDenda)}
+                {displayFormat(totalDenda)}
               </p>
               <p className="text-xs text-gray-400 mt-1">Sanksi administrasi</p>
             </div>
@@ -107,7 +132,7 @@ export default function DashboardContent({
                 Total Keseluruhan
               </p>
               <p className="text-xl font-bold text-primary mt-1">
-                {formatRupiah(totalKeseluruhan)}
+                {displayFormat(totalKeseluruhan)}
               </p>
               <p className="text-xs text-gray-400 mt-1">Pokok + Denda</p>
             </div>
@@ -131,7 +156,7 @@ export default function DashboardContent({
               <div key={jenis} className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">{jenis}</span>
                 <span className="text-sm font-semibold text-primary">
-                  {formatRupiah(nilai)}
+                  {displayFormat(nilai)}
                 </span>
               </div>
             ))}
@@ -168,7 +193,7 @@ export default function DashboardContent({
                 Rata-rata per Usulan
               </span>
               <span className="text-sm font-medium text-primary">
-                {formatRupiah(totalKeseluruhan / (usulanList.length || 1))}
+                {displayFormat(totalKeseluruhan / (usulanList.length || 1))}
               </span>
             </div>
           </div>
@@ -211,7 +236,7 @@ export default function DashboardContent({
                     {item.jenisPiutang}
                   </td>
                   <td className="px-4 py-2 text-right text-xs font-semibold text-primary">
-                    {formatRupiah(item.total)}
+                    {displayFormat(item.total)}
                   </td>
                 </tr>
               ))}
