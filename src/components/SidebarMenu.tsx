@@ -31,13 +31,12 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Deteksi ukuran layar untuk auto-minimize
   useEffect(() => {
     const checkScreen = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
       if (mobile) {
-        setIsCollapsed(true); // mobile selalu collapsed
+        setIsCollapsed(true);
       }
     };
     checkScreen();
@@ -45,20 +44,19 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
     return () => window.removeEventListener("resize", checkScreen);
   }, []);
 
-  // Toggle manual (hanya untuk desktop)
   const toggleSidebar = () => {
     if (!isMobile) {
       setIsCollapsed((prev) => !prev);
     }
   };
 
-  // Menu definitions berdasarkan role
+  // SKPD menus: "Nominatif Penanggung Utang" dan "Riwayat Pengajuan" dihapus
   const skpdMenus = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "ajukan", label: "Ajukan Penghapusan Piutang", icon: FilePlus, badge: null },
     { id: "dokumen", label: "Dokumen Penghapusan Piutang", icon: FolderOpen, badge: null },
-    { id: "nominatif", label: "Nominatif Penanggung Utang", icon: Users, badge: null },
-    { id: "riwayat", label: "Riwayat Pengajuan", icon: History, badge: null },
+    // { id: "nominatif", label: "Nominatif Penanggung Utang", icon: Users, badge: null },  // dihapus
+    // { id: "riwayat", label: "Riwayat Pengajuan", icon: History, badge: null },            // dihapus
   ];
 
   const bpkadMenus = [
@@ -111,7 +109,6 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
           const isActive = activeMenu === item.id;
 
           if (isCollapsed) {
-            // Mode collapsed: hanya ikon, tooltip menggunakan atribut title
             return (
               <button
                 key={item.id}
@@ -124,7 +121,6 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
             );
           }
 
-          // Mode expanded: ikon + teks + badge
           return (
             <button
               key={item.id}
@@ -151,7 +147,6 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
 
       {/* Footer: Logout + Toggle Manual (Desktop Only) */}
       <div className="p-3 border-t border-white/10 space-y-3">
-        {/* Logout */}
         {isCollapsed ? (
           <button
             onClick={() => alert("Logout")}
@@ -170,7 +165,6 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
           </button>
         )}
 
-        {/* Toggle Button - Hanya tampil di desktop (lebar ≥ 768px) */}
         {!isMobile && (
           <button
             onClick={toggleSidebar}

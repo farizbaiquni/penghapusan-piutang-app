@@ -14,13 +14,15 @@ import {
 import FormPenanggungUtangModal, {
   FormDataPUPN,
   FormDataNonPUPN,
-} from "./FormPenanggungUtangModal";
+} from "@/components/modals/FormPenanggungUtangModal"; // pastikan path ini sesuai
 
 interface PengajuanPenghapusanPiutangProps {
   role: "SKPD" | "BPKAD" | "INSPEKTORAT";
+  onDokumenIndukAdd?: (dokumen: DokumenInduk) => void; // callback untuk menambah dokumen ke list di parent
 }
 
-type DokumenInduk = {
+// Ekspor type agar bisa digunakan di komponen lain (misal DokumenPenghapusanPiutangContent)
+export type DokumenInduk = {
   id: number;
   judul: string;
   jenisPengajuan: "PUPN" | "NON-PUPN";
@@ -64,6 +66,7 @@ type NominatifNonPUPN = {
 
 export default function PengajuanPenghapusanPiutang({
   role,
+  onDokumenIndukAdd,
 }: PengajuanPenghapusanPiutangProps) {
   // Wizard state
   const [step, setStep] = useState(1);
@@ -76,9 +79,7 @@ export default function PengajuanPenghapusanPiutang({
 
   // Nominatif
   const [nominatifPUPNList, setNominatifPUPNList] = useState<NominatifPUPN[]>([]);
-  const [nominatifNonPUPNList, setNominatifNonPUPNList] = useState<
-    NominatifNonPUPN[]
-  >([]);
+  const [nominatifNonPUPNList, setNominatifNonPUPNList] = useState<NominatifNonPUPN[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingNominatif, setEditingNominatif] = useState<any>(null);
 
@@ -125,6 +126,10 @@ export default function PengajuanPenghapusanPiutang({
       status: "DRAFT",
     };
     setDokumenInduk(newDokumen);
+    // Kirim ke parent (HomePage) jika callback disediakan
+    if (onDokumenIndukAdd) {
+      onDokumenIndukAdd(newDokumen);
+    }
     setStep(3);
   };
 
@@ -175,9 +180,7 @@ export default function PengajuanPenghapusanPiutang({
     if (editingNominatif) {
       const updated = { ...editingNominatif, ...data, dokumenFiles: data.dokumen };
       setNominatifNonPUPNList(
-        nominatifNonPUPNList.map((item) =>
-          item.id === updated.id ? updated : item
-        )
+        nominatifNonPUPNList.map((item) => (item.id === updated.id ? updated : item))
       );
       setEditingNominatif(null);
       setShowModal(false);
@@ -320,9 +323,7 @@ export default function PengajuanPenghapusanPiutang({
 
           <div className="p-4 sm:p-6">
             <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-6">
-              <p className="font-semibold text-amber-800">
-                Pertanyaan 2 dari 2
-              </p>
+              <p className="font-semibold text-amber-800">Pertanyaan 2 dari 2</p>
               <p className="text-gray-800 text-sm sm:text-base mt-1">
                 Apakah Piutang Daerah{" "}
                 <strong className="text-primary">
@@ -374,10 +375,6 @@ export default function PengajuanPenghapusanPiutang({
 
   // ======================= STEP 2 : DOKUMEN INDUK =======================
   if (step === 2) {
-    const jalurText =
-      jalur === "PUPN"
-        ? "PUPN (PSBDT) - Melalui PUPN"
-        : "Non-PUPN (PPDTO) - Melalui PPKD";
     const bgColor =
       jalur === "PUPN"
         ? "bg-blue-50 border-blue-200"
@@ -452,7 +449,7 @@ export default function PengajuanPenghapusanPiutang({
 
     return (
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-        {/* Header dokumen induk - responsive */}
+        {/* Header dokumen induk */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -488,7 +485,7 @@ export default function PengajuanPenghapusanPiutang({
           </div>
         </div>
 
-        {/* Daftar nominatif dengan tabel scroll horizontal */}
+        {/* Daftar nominatif dengan tabel */}
         {nominatifList.length > 0 ? (
           <div className="bg-white rounded-xl shadow border mb-6 overflow-x-auto">
             <table className="min-w-[600px] w-full text-sm">
@@ -514,9 +511,7 @@ export default function PengajuanPenghapusanPiutang({
                     <td className="px-3 py-2 text-right font-semibold text-primary">
                       {isPUPN
                         ? formatRupiah((item as NominatifPUPN).total)
-                        : formatRupiah(
-                            (item as NominatifNonPUPN).nilaiPiutang
-                          )}
+                        : formatRupiah((item as NominatifNonPUPN).nilaiPiutang)}
                     </td>
                     <td className="px-3 py-2 text-center whitespace-nowrap">
                       <button
@@ -544,8 +539,7 @@ export default function PengajuanPenghapusanPiutang({
           <div className="bg-white rounded-xl shadow border p-8 text-center text-gray-400 mb-6">
             <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
             <p>
-              Belum ada data penanggung utang. Klik tombol di atas untuk
-              menambah.
+              Belum ada data penanggung utang. Klik tombol di atas untuk menambah.
             </p>
           </div>
         )}

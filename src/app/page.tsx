@@ -3,12 +3,18 @@
 import { useState, useEffect } from "react";
 import HeaderNavbar from "@/components/HeaderNavbar";
 import SidebarMenu from "@/components/SidebarMenu";
-import PengajuanPenghapusanPiutang from "@/components/contents/PengajuanPenghapusanPiutangContent";
+import PengajuanPenghapusanPiutang, {
+  DokumenInduk,
+} from "@/components/contents/PengajuanPenghapusanPiutangContent";
 import DashboardContent from "@/components/contents/DashboardContent";
 import SettingsContent from "@/components/contents/SettingsContent";
+import DokumenPenghapusanPiutangContent from "@/components/contents/DokumenPenghapusanPiutangContent";
 import { UsulanPiutang } from "@/lib/pdfGenerator";
+import {
+  FormDataPUPN,
+  FormDataNonPUPN,
+} from "@/components/modals/FormPenanggungUtangModal";
 
-// Menu pertama yang aktif saat masuk ke suatu role
 const defaultMenus: Record<string, string> = {
   SKPD: "ajukan",
   BPKAD: "verifikasiPUPN",
@@ -20,12 +26,17 @@ export default function HomePage() {
   const [activeMenu, setActiveMenu] = useState(defaultMenus["SKPD"]);
   const [usulanList, setUsulanList] = useState<UsulanPiutang[]>([]);
   const [useShortFormat, setUseShortFormat] = useState(true);
+  const [dokumenIndukList, setDokumenIndukList] = useState<DokumenInduk[]>([]);
+  // Menyimpan daftar nominatif untuk setiap dokumen (key: dokumenId)
+  const [nominatifMap, setNominatifMap] = useState<
+    Record<number, (FormDataPUPN | FormDataNonPUPN)[]>
+  >({});
 
-  // Reset activeMenu setiap kali role berubah
   useEffect(() => {
     setActiveMenu(defaultMenus[role]);
   }, [role]);
 
+  // ---- Format Rupiah ----
   const formatRupiahShort = (angka: number): string => {
     if (angka === 0) return "Rp 0";
     const isNegative = angka < 0;
@@ -50,12 +61,64 @@ export default function HomePage() {
     return useShortFormat ? formatRupiahShort(angka) : formatRupiahFull(angka);
   };
 
+  // ---- Callback dari Wizard Pengajuan ----
+  const addDokumenInduk = (dokumen: DokumenInduk) => {
+    setDokumenIndukList((prev) => [...prev, dokumen]);
+  };
+
+  const deleteDokumenInduk = (id: number) => {
+    setDokumenIndukList((prev) => prev.filter((doc) => doc.id !== id));
+    // Hapus juga data nominatifnya
+    setNominatifMap((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+  };
+
+  const editDokumenInduk = (id: number, judulBaru: string) => {
+    setDokumenIndukList((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, judul: judulBaru } : doc))
+    );
+  };
+
+  // ---- Menambah nominatif dari DokumenPenghapusanPiutangContent ----
+  const handleAddNominatif = (
+    dokumenId: number,
+    data: FormDataPUPN | FormDataNonPUPN
+  ) => {
+    const newNominatif = {
+      id: Date.now(),
+      ...data,
+      dokumenId,
+    };
+
+    setNominatifMap((prev) => ({
+      ...prev,
+      [dokumenId]: [...(prev[dokumenId] || []), newNominatif],
+    }));
+
+    setDokumenIndukList((prev) =>
+      prev.map((doc) =>
+        doc.id === dokumenId
+          ? { ...doc, nominatifIds: [...doc.nominatifIds, newNominatif.id] }
+          : doc
+      )
+    );
+  };
+
+  // ---- Render Konten Berdasarkan Role ----
   const renderContent = () => {
-    // ==================== SKPD ====================
+    // ========== SKPD ==========
     if (role === "SKPD") {
       switch (activeMenu) {
         case "ajukan":
-          return <PengajuanPenghapusanPiutang role={role} />;
+          return (
+            <PengajuanPenghapusanPiutang
+              role={role}
+              onDokumenIndukAdd={addDokumenInduk}
+            />
+          );
         case "dashboard":
           return (
             <DashboardContent
@@ -67,15 +130,12 @@ export default function HomePage() {
           );
         case "dokumen":
           return (
-            <div className="p-6 text-center text-gray-500">
-              Halaman Dokumen Penghapusan Piutang (dalam pengembangan)
-            </div>
-          );
-        case "nominatif":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Halaman Nominatif Penanggung Utang (dalam pengembangan)
-            </div>
+            <DokumenPenghapusanPiutangContent
+              dokumenIndukList={dokumenIndukList}
+              nominatifMap={nominatifMap}
+              onDeleteDokumen={deleteDokumenInduk}
+              onAddNominatif={handleAddNominatif}
+            />
           );
         case "riwayat":
           return (
@@ -91,11 +151,16 @@ export default function HomePage() {
             />
           );
         default:
-          return <PengajuanPenghapusanPiutang role={role} />;
+          return (
+            <PengajuanPenghapusanPiutang
+              role={role}
+              onDokumenIndukAdd={addDokumenInduk}
+            />
+          );
       }
     }
 
-    // ==================== BPKAD ====================
+    // ========== BPKAD ==========
     if (role === "BPKAD") {
       switch (activeMenu) {
         case "dashboard":
@@ -156,7 +221,7 @@ export default function HomePage() {
       }
     }
 
-    // ==================== INSPEKTORAT ====================
+    // ========== INSPEKTORAT ==========
     if (role === "INSPEKTORAT") {
       switch (activeMenu) {
         case "dashboard":
@@ -211,7 +276,6 @@ export default function HomePage() {
       }
     }
 
-    // Fallback (seharusnya tidak pernah terjadi)
     return <div className="p-6 text-center text-red-500">Akses tidak diizinkan</div>;
   };
 
