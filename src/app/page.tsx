@@ -5,15 +5,19 @@ import HeaderNavbar from "@/components/HeaderNavbar";
 import SidebarMenu from "@/components/SidebarMenu";
 import PengajuanPenghapusanPiutang, {
   DokumenInduk,
-} from "@/components/contents/PengajuanPenghapusanPiutangContent";
+} from "@/components/contents/skpd/PengajuanPenghapusanPiutangContent";
 import DashboardContent from "@/components/contents/DashboardContent";
 import SettingsContent from "@/components/contents/SettingsContent";
-import DokumenPenghapusanPiutangContent from "@/components/contents/DokumenPenghapusanPiutangContent";
+import DokumenPenghapusanPiutangContent from "@/components/contents/skpd/DokumenPenghapusanPiutangContent";
+import VerifikasiPUPNContent, {
+  VerifikasiPUPNData,
+} from "@/components/contents/bpkad/VerifikasiPUPNContent";
 import { UsulanPiutang } from "@/lib/pdfGenerator";
 import {
   FormDataPUPN,
   FormDataNonPUPN,
 } from "@/components/modals/FormPenanggungUtangModal";
+import UnsavedChangesModal from "@/components/modals/UnsavedChangesModal";
 
 const defaultMenus: Record<string, string> = {
   SKPD: "ajukan",
@@ -31,6 +35,55 @@ export default function HomePage() {
   const [nominatifMap, setNominatifMap] = useState<
     Record<number, (FormDataPUPN | FormDataNonPUPN)[]>
   >({});
+  // Menyimpan data verifikasi PUPN per dokumen
+  const [verifikasiPUPNMap, setVerifikasiPUPNMap] = useState<
+    Record<number, VerifikasiPUPNData>
+  >({});
+
+  // ---- State untuk modal konfirmasi navigasi ----
+  const [unsavedState, setUnsavedState] = useState<{
+    hasUnsaved: boolean;
+    judul: string;
+    nominatifCount: number;
+    triggerSaveDraft: () => void;
+    triggerDiscard: () => void;
+  } | null>(null);
+  const [pendingMenu, setPendingMenu] = useState<string | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+
+  // Intersep klik menu sidebar: jika SKPD sedang di wizard ajukan + ada unsaved → modal
+  const handleMenuChange = (menuId: string) => {
+    if (
+      role === "SKPD" &&
+      activeMenu === "ajukan" &&
+      menuId !== "ajukan" &&
+      unsavedState?.hasUnsaved
+    ) {
+      setPendingMenu(menuId);
+      setShowUnsavedModal(true);
+      return;
+    }
+    setActiveMenu(menuId);
+  };
+
+  const handleUnsavedSaveDraft = () => {
+    unsavedState?.triggerSaveDraft();
+    setShowUnsavedModal(false);
+    if (pendingMenu) setActiveMenu(pendingMenu);
+    setPendingMenu(null);
+  };
+
+  const handleUnsavedDiscard = () => {
+    unsavedState?.triggerDiscard();
+    setShowUnsavedModal(false);
+    if (pendingMenu) setActiveMenu(pendingMenu);
+    setPendingMenu(null);
+  };
+
+  const handleUnsavedCancel = () => {
+    setShowUnsavedModal(false);
+    setPendingMenu(null);
+  };
 
   useEffect(() => {
     setActiveMenu(defaultMenus[role]);
@@ -61,15 +114,48 @@ export default function HomePage() {
     return useShortFormat ? formatRupiahShort(angka) : formatRupiahFull(angka);
   };
 
-  // ---- Callback dari Wizard Pengajuan ----
-  const addDokumenInduk = (dokumen: DokumenInduk) => {
-    setDokumenIndukList((prev) => [...prev, dokumen]);
+  // ---- Callback dari wizard pengajuan (menggantikan addDokumenInduk) ----
+  const handleSaveDokumen = (
+    dokumen: DokumenInduk,
+    nominatifList: (FormDataPUPN | FormDataNonPUPN)[]
+  ) => {
+    // Jika SKPD mengirim (bukan simpan draft), ubah status ke MENUNGGU_VERIFIKASI_PPKD
+    const dokumenFinal: DokumenInduk = {
+      ...dokumen,
+      status:
+        dokumen.status === "DIAJUKAN"
+          ? "MENUNGGU_VERIFIKASI_PPKD"
+          : dokumen.status,
+    };
+
+    setDokumenIndukList((prev) => {
+      const existingIndex = prev.findIndex((d) => d.id === dokumenFinal.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = dokumenFinal;
+        return updated;
+      } else {
+        return [...prev, dokumenFinal];
+      }
+    });
+
+    // Simpan/update nominatifMap
+    setNominatifMap((prev) => ({
+      ...prev,
+      [dokumenFinal.id]: nominatifList,
+    }));
   };
 
   const deleteDokumenInduk = (id: number) => {
     setDokumenIndukList((prev) => prev.filter((doc) => doc.id !== id));
     // Hapus juga data nominatifnya
     setNominatifMap((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    // Hapus data verifikasi jika ada
+    setVerifikasiPUPNMap((prev) => {
       const updated = { ...prev };
       delete updated[id];
       return updated;
@@ -116,7 +202,8 @@ export default function HomePage() {
           return (
             <PengajuanPenghapusanPiutang
               role={role}
-              onDokumenIndukAdd={addDokumenInduk}
+              onSaveDokumen={handleSaveDokumen}
+              onUnsavedChange={setUnsavedState}
             />
           );
         case "dashboard":
@@ -154,7 +241,8 @@ export default function HomePage() {
           return (
             <PengajuanPenghapusanPiutang
               role={role}
-              onDokumenIndukAdd={addDokumenInduk}
+              onSaveDokumen={handleSaveDokumen}
+              onUnsavedChange={setUnsavedState}
             />
           );
       }
@@ -172,34 +260,55 @@ export default function HomePage() {
               role={role}
             />
           );
-        case "verifikasiPUPN":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Verifikasi Berkas (Jalur PUPN) – Dalam Pengembangan
-            </div>
+        case "verifikasiPUPN": {
+          // Filter dokumen PUPN yang menunggu verifikasi
+          const dokumenPUPN = dokumenIndukList.filter(
+            (doc) =>
+              doc.jenisPengajuan === "PUPN" &&
+              (doc.status === "DIAJUKAN" ||
+                doc.status === "MENUNGGU_VERIFIKASI_PPKD")
           );
+          return (
+            <VerifikasiPUPNContent
+              dokumenIndukList={dokumenPUPN}
+              nominatifMap={nominatifMap}
+              onTerima={(dokumenId, data) => {
+                // Simpan data verifikasi
+                setVerifikasiPUPNMap((prev) => ({
+                  ...prev,
+                  [dokumenId]: data,
+                }));
+                // Ubah status menjadi MENUNGGU_REVIU_INSPEKTORAT
+                setDokumenIndukList((prev) =>
+                  prev.map((d) =>
+                    d.id === dokumenId
+                      ? { ...d, status: "MENUNGGU_REVIU_INSPEKTORAT" }
+                      : d
+                  )
+                );
+              }}
+              onTolak={(dokumenId, data, alasan) => {
+                setVerifikasiPUPNMap((prev) => ({
+                  ...prev,
+                  [dokumenId]: data,
+                }));
+                setDokumenIndukList((prev) =>
+                  prev.map((d) =>
+                    d.id === dokumenId
+                      ? { ...d, status: "DITOLAK_PPKD" }
+                      : d
+                  )
+                );
+                // Alasan penolakan bisa disimpan di data tambahan atau state terpisah
+                console.log("Alasan penolakan PUPN:", alasan);
+              }}
+            />
+          );
+        }
         case "verifikasiNonPUPN":
           return (
             <div className="p-6 text-center text-gray-500">
               Verifikasi Berkas (Jalur Non‑PUPN) – Dalam Pengembangan
-            </div>
-          );
-        case "usulPUPN":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Usul ke PUPN – Dalam Pengembangan
-            </div>
-          );
-        case "terbitPPDTO":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Terbitkan PPDTO – Dalam Pengembangan
-            </div>
-          );
-        case "laporan":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Laporan Monitoring – Dalam Pengembangan
             </div>
           );
         case "pengaturan":
@@ -276,7 +385,9 @@ export default function HomePage() {
       }
     }
 
-    return <div className="p-6 text-center text-red-500">Akses tidak diizinkan</div>;
+    return (
+      <div className="p-6 text-center text-red-500">Akses tidak diizinkan</div>
+    );
   };
 
   return (
@@ -284,7 +395,7 @@ export default function HomePage() {
       <SidebarMenu
         role={role}
         activeMenu={activeMenu}
-        onMenuChange={setActiveMenu}
+        onMenuChange={handleMenuChange}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <HeaderNavbar role={role} onRoleChange={setRole} />
@@ -292,6 +403,14 @@ export default function HomePage() {
           {renderContent()}
         </main>
       </div>
+      <UnsavedChangesModal
+        isOpen={showUnsavedModal}
+        judul={unsavedState?.judul}
+        nominatifCount={unsavedState?.nominatifCount}
+        onSaveDraft={handleUnsavedSaveDraft}
+        onDiscard={handleUnsavedDiscard}
+        onCancel={handleUnsavedCancel}
+      />
     </div>
   );
 }

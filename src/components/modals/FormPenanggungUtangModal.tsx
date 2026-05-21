@@ -17,8 +17,203 @@ import {
   Trash2,
   Eye,
   Plus,
-  Minus,
+  ChevronDown,
+  Search,
+  CheckCircle2,
+  Banknote,
 } from "lucide-react";
+import cc from "currency-codes";
+
+// ---- Daftar mata uang ISO 4217 (currency-codes) ----
+const PRIORITY_CODES = ["IDR","USD","EUR","SGD","MYR","JPY","CNY","GBP","AUD","SAR","AED"];
+const ALL_CURRENCY_CODES = [
+  ...PRIORITY_CODES,
+  ...cc.codes().filter((c) => !PRIORITY_CODES.includes(c)),
+];
+const CURRENCY_OPTIONS = ALL_CURRENCY_CODES.map((code) => {
+  const info = cc.code(code);
+  return { code, name: info ? info.currency : code };
+});
+
+// ---- Format angka → "1.500.000" (pemisah ribuan, tanpa Rp) ----
+function formatThousands(raw: string | number): string {
+  const digits = String(raw).replace(/\D/g, "");
+  if (!digits || digits === "0") return "";
+  return Number(digits).toLocaleString("id-ID");
+}
+function parseFormatted(formatted: string): number {
+  return parseInt(formatted.replace(/\./g, "").replace(/,/g, "")) || 0;
+}
+
+// ---- CurrencySelect Component ----
+function CurrencySelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (code: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const filtered = CURRENCY_OPTIONS.filter(
+    (c) =>
+      c.code.toLowerCase().includes(query.toLowerCase()) ||
+      c.name.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const selected = CURRENCY_OPTIONS.find((c) => c.code === value);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus();
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => { setOpen((p) => !p); setQuery(""); }}
+        className="w-full flex items-center gap-2 px-3 py-2.5 border border-gray-300 rounded-lg bg-white hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm"
+      >
+        <span className="inline-flex items-center justify-center w-8 h-5 rounded bg-primary/10 text-primary text-xs font-bold flex-shrink-0">
+          {selected?.code ?? "—"}
+        </span>
+        <span className="flex-1 text-left text-gray-700 truncate">
+          {selected ? `${selected.code} – ${selected.name}` : "Pilih mata uang"}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          {/* Search */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50">
+            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari kode atau nama mata uang..."
+              className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+            />
+          </div>
+          {/* Priority label */}
+          {!query && (
+            <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest bg-gray-50 border-b border-gray-100">
+              Umum digunakan
+            </div>
+          )}
+          <div className="max-h-56 overflow-y-auto">
+            {!query && (
+              <>
+                {PRIORITY_CODES.map((code) => {
+                  const item = CURRENCY_OPTIONS.find((c) => c.code === code)!;
+                  const isActive = value === code;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => { onChange(code); setOpen(false); }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition ${isActive ? "bg-primary/5 text-primary" : "hover:bg-gray-50 text-gray-700"}`}
+                    >
+                      <span className={`inline-flex items-center justify-center w-9 h-5 rounded text-[11px] font-bold flex-shrink-0 ${isActive ? "bg-primary text-white" : "bg-gray-100 text-gray-500"}`}>
+                        {code}
+                      </span>
+                      <span className="flex-1 truncate">{item.name}</span>
+                      {isActive && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+                <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-widest bg-gray-50 border-y border-gray-100">
+                  Semua mata uang
+                </div>
+              </>
+            )}
+            {(query ? filtered : CURRENCY_OPTIONS.filter((c) => !PRIORITY_CODES.includes(c.code))).map((item) => {
+              const isActive = value === item.code;
+              return (
+                <button
+                  key={item.code}
+                  type="button"
+                  onClick={() => { onChange(item.code); setOpen(false); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition ${isActive ? "bg-primary/5 text-primary" : "hover:bg-gray-50 text-gray-700"}`}
+                >
+                  <span className={`inline-flex items-center justify-center w-9 h-5 rounded text-[11px] font-bold flex-shrink-0 ${isActive ? "bg-primary text-white" : "bg-gray-100 text-gray-500"}`}>
+                    {item.code}
+                  </span>
+                  <span className="flex-1 truncate">{item.name}</span>
+                  {isActive && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
+                </button>
+              );
+            })}
+            {query && filtered.length === 0 && (
+              <div className="px-4 py-6 text-center text-sm text-gray-400">Tidak ditemukan</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- RupiahInput Component ----
+function RupiahInput({
+  value,
+  onChange,
+  placeholder = "0",
+  error,
+  className = "",
+}: {
+  value: number;
+  onChange: (val: number) => void;
+  placeholder?: string;
+  error?: boolean;
+  className?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(value > 0 ? formatThousands(value) : "");
+
+  // Sync ketika value dari luar berubah (misal reset form)
+  useEffect(() => {
+    setDisplayValue(value > 0 ? formatThousands(value) : "");
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\./g, "").replace(/,/g, "");
+    const digits = raw.replace(/\D/g, "");
+    const num = parseInt(digits) || 0;
+    setDisplayValue(digits ? Number(digits).toLocaleString("id-ID") : "");
+    onChange(num);
+  };
+
+  return (
+    <div className={`relative ${className}`}>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400 pointer-events-none select-none">
+        Rp
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={displayValue}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className={`w-full pl-9 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm ${
+          error ? "border-red-400 bg-red-50" : "border-gray-300 bg-white"
+        }`}
+      />
+    </div>
+  );
+}
 
 type Jalur = "PUPN" | "NON-PUPN";
 
@@ -28,7 +223,6 @@ export type Pembayaran = {
   nilai: number;
 };
 
-// Tipe data untuk PUPN
 export type FormDataPUPN = {
   nama: string;
   alamat: string;
@@ -43,7 +237,6 @@ export type FormDataPUPN = {
   dokumen: Record<string, File | null>;
 };
 
-// Tipe data untuk NON-PUPN
 export type FormDataNonPUPN = {
   nama: string;
   alamat: string;
@@ -79,8 +272,7 @@ const DOKUMEN_PUPN = {
     {
       id: "ba_lapangan",
       label: "Berita Acara (BA) Identifikasi Lapangan",
-      keterangan:
-        "Wajib diunggah (PDF) – Berita Acara identifikasi lapangan dari tim identifikasi lapangan yang telah disahkan oleh kepala PPKD.",
+      keterangan: "Wajib diunggah (PDF) – Berita Acara identifikasi lapangan dari tim identifikasi lapangan yang telah disahkan oleh kepala PPKD.",
     },
   ],
   opsional: [
@@ -103,13 +295,7 @@ const DOKUMEN_NON_PUPN = {
   ],
   wajibKondisional: (_nilaiPiutang: number, sisaUtang: number) =>
     sisaUtang > 1_000_000_000
-      ? [
-          {
-            id: "kerjasama_djkn",
-            label: "Bukti Kerjasama dengan Kanwil DJKN Perwakilan Jawa Tengah",
-            keterangan: "Wajib karena sisa utang > Rp 1 Miliar (PDF)",
-          },
-        ]
+      ? [{ id: "kerjasama_djkn", label: "Bukti Kerjasama dengan Kanwil DJKN Perwakilan Jawa Tengah", keterangan: "Wajib karena sisa utang > Rp 1 Miliar (PDF)" }]
       : [],
   opsional: [
     { id: "optimalisasi_lainnya", label: "Dokumen Bukti Optimalisasi Lainnya (MoU, Gugatan, dll.)" },
@@ -128,74 +314,40 @@ export default function FormPenanggungUtangModal({
   jalur,
   initialData,
 }: FormPenanggungUtangModalProps) {
-  // -- State PUPN --
   const [formPUPN, setFormPUPN] = useState<FormDataPUPN>({
-    nama: "",
-    alamat: "",
-    nik: "",
-    pekerjaan: "",
-    jenisPiutang: "Retribusi Daerah",
-    noSkrd: "",
-    noStrd: "",
-    pokok: 0,
-    denda: 0,
-    upayaPenagihan: "",
-    dokumen: {},
+    nama: "", alamat: "", nik: "", pekerjaan: "", jenisPiutang: "Retribusi Daerah",
+    noSkrd: "", noStrd: "", pokok: 0, denda: 0, upayaPenagihan: "", dokumen: {},
   });
 
-  // -- State Non‑PUPN --
   const [formNonPUPN, setFormNonPUPN] = useState<FormDataNonPUPN>({
-    nama: "",
-    alamat: "",
-    nilaiPiutang: 0,
-    tanggalTerjadi: "",
-    tanggalJatuhTempo: "",
-    mataUang: "IDR",
-    pembayaran: [],
-    saldoUtang: 0,
-    sisaUtang: 0,
-    keterangan: "",
-    dokumen: {},
+    nama: "", alamat: "", nilaiPiutang: 0, tanggalTerjadi: "", tanggalJatuhTempo: "",
+    mataUang: "IDR", pembayaran: [], saldoUtang: 0, sisaUtang: 0, keterangan: "", dokumen: {},
   });
 
   const [dokumenFiles, setDokumenFiles] = useState<Record<string, File | null>>({});
   const [dokumenNama, setDokumenNama] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // -- Reset & init --
   useEffect(() => {
     if (isOpen) {
       setDokumenFiles({});
       setDokumenNama({});
-
       if (jalur === "PUPN") {
         if (initialData && "nik" in initialData) {
           const data = initialData as FormDataPUPN;
           setFormPUPN(data);
           if (data.dokumen) restoreDokumen(data.dokumen);
         } else {
-          setFormPUPN({
-            nama: "", alamat: "", nik: "", pekerjaan: "", jenisPiutang: "Retribusi Daerah",
-            noSkrd: "", noStrd: "", pokok: 0, denda: 0, upayaPenagihan: "", dokumen: {},
-          });
+          setFormPUPN({ nama: "", alamat: "", nik: "", pekerjaan: "", jenisPiutang: "Retribusi Daerah", noSkrd: "", noStrd: "", pokok: 0, denda: 0, upayaPenagihan: "", dokumen: {} });
         }
       } else {
         if (initialData && "nilaiPiutang" in initialData) {
           const data = initialData as FormDataNonPUPN;
-          setFormNonPUPN({
-            ...data,
-            pembayaran: data.pembayaran || [],
-            saldoUtang: data.saldoUtang ?? data.nilaiPiutang,
-            sisaUtang: data.sisaUtang ?? data.nilaiPiutang,
-          });
+          setFormNonPUPN({ ...data, pembayaran: data.pembayaran || [], saldoUtang: data.saldoUtang ?? data.nilaiPiutang, sisaUtang: data.sisaUtang ?? data.nilaiPiutang });
           if (data.dokumen) restoreDokumen(data.dokumen);
         } else {
-          setFormNonPUPN({
-            nama: "", alamat: "", nilaiPiutang: 0, tanggalTerjadi: "", tanggalJatuhTempo: "",
-            mataUang: "IDR", pembayaran: [], saldoUtang: 0, sisaUtang: 0, keterangan: "", dokumen: {},
-          });
+          setFormNonPUPN({ nama: "", alamat: "", nilaiPiutang: 0, tanggalTerjadi: "", tanggalJatuhTempo: "", mataUang: "IDR", pembayaran: [], saldoUtang: 0, sisaUtang: 0, keterangan: "", dokumen: {} });
         }
       }
       setErrors({});
@@ -205,54 +357,37 @@ export default function FormPenanggungUtangModal({
   const restoreDokumen = (dict: Record<string, File | null>) => {
     const files: Record<string, File | null> = {};
     const names: Record<string, string> = {};
-    Object.entries(dict).forEach(([key, val]) => {
-      files[key] = val;
-      names[key] = val?.name || "File tersimpan";
-    });
+    Object.entries(dict).forEach(([key, val]) => { files[key] = val; names[key] = val?.name || "File tersimpan"; });
     setDokumenFiles(files);
     setDokumenNama(names);
   };
 
-  // -- File handlers --
   const handleFileChange = (id: string, file: File | null) => {
-    if (file && file.type !== "application/pdf") {
-      alert("Hanya file PDF yang diperbolehkan.");
-      return;
-    }
-    const newFiles = { ...dokumenFiles, [id]: file };
-    const newNames = { ...dokumenNama, [id]: file ? file.name : "" };
-    setDokumenFiles(newFiles);
-    setDokumenNama(newNames);
+    if (file && file.type !== "application/pdf") { alert("Hanya file PDF yang diperbolehkan."); return; }
+    setDokumenFiles((prev) => ({ ...prev, [id]: file }));
+    setDokumenNama((prev) => ({ ...prev, [id]: file ? file.name : "" }));
     if (errors.dokumen) setErrors((prev) => ({ ...prev, dokumen: "" }));
   };
 
   const handleRemoveFile = (id: string) => {
-    const newFiles = { ...dokumenFiles, [id]: null };
-    const newNames = { ...dokumenNama, [id]: "" };
-    setDokumenFiles(newFiles);
-    setDokumenNama(newNames);
+    setDokumenFiles((prev) => ({ ...prev, [id]: null }));
+    setDokumenNama((prev) => ({ ...prev, [id]: "" }));
   };
 
   const handlePreviewFile = (id: string) => {
     const file = dokumenFiles[id];
-    if (file) {
-      const fileURL = URL.createObjectURL(file);
-      window.open(fileURL, "_blank");
-    }
+    if (file) window.open(URL.createObjectURL(file), "_blank");
   };
 
-  // -- Close on outside click --
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isOpen && modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
+      if (isOpen && modalRef.current && !modalRef.current.contains(event.target as Node)) onClose();
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
 
-  // -- Perhitungan otomatis Non‑PUPN --
+  // Kalkulasi Non-PUPN
   const totalPembayaran = formNonPUPN.pembayaran.reduce((sum, p) => sum + (p.nilai || 0), 0);
   const saldoUtang = Math.max(0, formNonPUPN.nilaiPiutang - totalPembayaran);
   const sisaUtang = saldoUtang;
@@ -273,35 +408,24 @@ export default function FormPenanggungUtangModal({
   };
   const usiaWarning = getUsiaWarning();
 
-  // -- Pembayaran handlers --
+  // Pembayaran handlers
   const addPembayaran = () => {
-    setFormNonPUPN((prev) => ({
-      ...prev,
-      pembayaran: [...prev.pembayaran, { id: Date.now(), tanggal: "", nilai: 0 }],
-    }));
+    setFormNonPUPN((prev) => ({ ...prev, pembayaran: [...prev.pembayaran, { id: Date.now(), tanggal: "", nilai: 0 }] }));
   };
-
   const removePembayaran = (id: number) => {
-    setFormNonPUPN((prev) => ({
-      ...prev,
-      pembayaran: prev.pembayaran.filter((p) => p.id !== id),
-    }));
+    setFormNonPUPN((prev) => ({ ...prev, pembayaran: prev.pembayaran.filter((p) => p.id !== id) }));
   };
-
   const updatePembayaran = (id: number, field: "tanggal" | "nilai", value: string | number) => {
-    setFormNonPUPN((prev) => ({
-      ...prev,
-      pembayaran: prev.pembayaran.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
-    }));
+    setFormNonPUPN((prev) => ({ ...prev, pembayaran: prev.pembayaran.map((p) => (p.id === id ? { ...p, [field]: value } : p)) }));
   };
 
-  // -- Validasi --
+  // Validasi
   const validateFormPUPN = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formPUPN.nama.trim()) newErrors.nama = "Nama wajib diisi";
     if (!formPUPN.alamat.trim()) newErrors.alamat = "Alamat wajib diisi";
     if (formPUPN.nik && !/^\d{16}$/.test(formPUPN.nik)) newErrors.nik = "NIK harus 16 digit angka";
-    if (!dokumenFiles["ba_lapangan"]) newErrors.dokumen = "Berita Acara (BA) Identifikasi Lapangan wajib diunggah (PDF).";
+    if (!dokumenFiles["ba_lapangan"]) newErrors.dokumen = "Berita Acara (BA) Identifikasi Lapangan wajib diunggah.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -311,9 +435,8 @@ export default function FormPenanggungUtangModal({
     if (!formNonPUPN.nama.trim()) newErrors.nama = "Nama wajib diisi";
     if (!formNonPUPN.alamat.trim()) newErrors.alamat = "Alamat wajib diisi";
     if (formNonPUPN.nilaiPiutang <= 0) newErrors.nilaiPiutang = "Nilai piutang harus lebih dari 0";
-    if (!dokumenFiles["surat_tagihan"]) newErrors.dokumen = "Surat Tagihan (Bukti Penagihan Tertulis) wajib diunggah (PDF).";
-    if (sisaUtang > 1_000_000_000 && !dokumenFiles["kerjasama_djkn"])
-      newErrors.dokumen = "Bukti Kerjasama dengan Kanwil DJKN wajib diunggah (PDF) karena sisa utang > Rp 1 Miliar.";
+    if (!dokumenFiles["surat_tagihan"]) newErrors.dokumen = "Surat Tagihan wajib diunggah.";
+    if (sisaUtang > 1_000_000_000 && !dokumenFiles["kerjasama_djkn"]) newErrors.dokumen = "Bukti Kerjasama dengan Kanwil DJKN wajib diunggah karena sisa utang > Rp 1 Miliar.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -321,20 +444,9 @@ export default function FormPenanggungUtangModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (jalur === "PUPN") {
-      if (validateFormPUPN()) {
-        const data = { ...formPUPN, dokumen: dokumenFiles };
-        onSubmit(data);
-      }
+      if (validateFormPUPN()) onSubmit({ ...formPUPN, dokumen: dokumenFiles });
     } else {
-      if (validateFormNonPUPN()) {
-        const data: FormDataNonPUPN = {
-          ...formNonPUPN,
-          saldoUtang,
-          sisaUtang,
-          dokumen: dokumenFiles,
-        };
-        onSubmit(data);
-      }
+      if (validateFormNonPUPN()) onSubmit({ ...formNonPUPN, saldoUtang, sisaUtang, dokumen: dokumenFiles });
     }
   };
 
@@ -342,17 +454,7 @@ export default function FormPenanggungUtangModal({
 
   if (!isOpen) return null;
 
-  const DokumenField = ({
-    id,
-    label,
-    required,
-    keterangan,
-  }: {
-    id: string;
-    label: string;
-    required?: boolean;
-    keterangan?: string;
-  }) => {
+  const DokumenField = ({ id, label, required, keterangan }: { id: string; label: string; required?: boolean; keterangan?: string }) => {
     const file = dokumenFiles[id];
     const fileName = dokumenNama[id];
     return (
@@ -364,12 +466,8 @@ export default function FormPenanggungUtangModal({
           <input
             type="file"
             accept=".pdf"
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) handleFileChange(id, e.target.files[0]);
-            }}
-            className={`w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary hover:file:bg-primary-100 transition ${
-              !file ? "border-dashed border-2 border-gray-300 bg-gray-50" : "border border-gray-200"
-            } rounded-lg py-1`}
+            onChange={(e) => { if (e.target.files?.[0]) handleFileChange(id, e.target.files[0]); }}
+            className={`w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-5 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary hover:file:bg-primary-100 transition ${!file ? "border-dashed border-2 border-gray-300 bg-gray-50" : "border border-gray-200"} rounded-lg py-1`}
           />
           {!file && <UploadCloud className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 pointer-events-none" />}
         </div>
@@ -409,7 +507,6 @@ export default function FormPenanggungUtangModal({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {jalur === "PUPN" ? (
-            // ================= FORM PUPN =================
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -465,101 +562,194 @@ export default function FormPenanggungUtangModal({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Pokok Piutang (Rp)</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="number" value={formPUPN.pokok || ""} onChange={(e) => setFormPUPN({ ...formPUPN, pokok: parseInt(e.target.value) || 0 })} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
-                  </div>
+                  <RupiahInput value={formPUPN.pokok} onChange={(v) => setFormPUPN({ ...formPUPN, pokok: v })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Denda (Rp)</label>
-                  <input type="number" value={formPUPN.denda || ""} onChange={(e) => setFormPUPN({ ...formPUPN, denda: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                  <RupiahInput value={formPUPN.denda} onChange={(v) => setFormPUPN({ ...formPUPN, denda: v })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Total Piutang</label>
                   <div className="relative">
                     <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" value={new Intl.NumberFormat("id-ID").format(totalPiutang)} readOnly className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 font-semibold text-primary" />
+                    <input type="text" value={`Rp ${totalPiutang.toLocaleString("id-ID")}`} readOnly className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 font-semibold text-primary text-sm" />
                   </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Upaya Penagihan</label>
-                <textarea rows={2} value={formPUPN.upayaPenagihan} onChange={(e) => setFormPUPN({ ...formPUPN, upayaPenagihan: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" placeholder="Surat teguran, mediasi, dll."></textarea>
+                <textarea rows={2} value={formPUPN.upayaPenagihan} onChange={(e) => setFormPUPN({ ...formPUPN, upayaPenagihan: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" placeholder="Surat teguran, mediasi, dll." />
               </div>
             </>
           ) : (
-            // ================= FORM NON‑PUPN =================
+            // ================= FORM NON-PUPN =================
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nama */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap <span className="text-red-500">*</span></label>
-                  <input type="text" value={formNonPUPN.nama} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, nama: e.target.value })} className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition ${errors.nama ? "border-red-500 bg-red-50" : "border-gray-300"}`} />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={formNonPUPN.nama} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, nama: e.target.value })} className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm ${errors.nama ? "border-red-400 bg-red-50" : "border-gray-300"}`} />
+                  </div>
                   {errors.nama && <p className="text-xs text-red-500 mt-1">{errors.nama}</p>}
                 </div>
+                {/* Alamat */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alamat <span className="text-red-500">*</span></label>
-                  <input type="text" value={formNonPUPN.alamat} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, alamat: e.target.value })} className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition ${errors.alamat ? "border-red-500 bg-red-50" : "border-gray-300"}`} />
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={formNonPUPN.alamat} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, alamat: e.target.value })} className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm ${errors.alamat ? "border-red-400 bg-red-50" : "border-gray-300"}`} />
+                  </div>
                   {errors.alamat && <p className="text-xs text-red-500 mt-1">{errors.alamat}</p>}
                 </div>
+                {/* Nilai Piutang */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nilai Piutang (Rp) <span className="text-red-500">*</span></label>
-                  <input type="number" value={formNonPUPN.nilaiPiutang || ""} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, nilaiPiutang: parseInt(e.target.value) || 0 })} className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition ${errors.nilaiPiutang ? "border-red-500 bg-red-50" : "border-gray-300"}`} />
+                  <RupiahInput
+                    value={formNonPUPN.nilaiPiutang}
+                    onChange={(v) => setFormNonPUPN({ ...formNonPUPN, nilaiPiutang: v })}
+                    error={!!errors.nilaiPiutang}
+                  />
                   {errors.nilaiPiutang && <p className="text-xs text-red-500 mt-1">{errors.nilaiPiutang}</p>}
                 </div>
+                {/* Tanggal Terjadi */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Terjadi Piutang</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="date" value={formNonPUPN.tanggalTerjadi} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, tanggalTerjadi: e.target.value })} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                    <input type="date" value={formNonPUPN.tanggalTerjadi} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, tanggalTerjadi: e.target.value })} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm" />
                   </div>
                 </div>
+                {/* Jatuh Tempo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Jatuh Tempo / Macet</label>
-                  <input type="date" value={formNonPUPN.tanggalJatuhTempo} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, tanggalJatuhTempo: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="date" value={formNonPUPN.tanggalJatuhTempo} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, tanggalJatuhTempo: e.target.value })} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm" />
+                  </div>
                 </div>
+                {/* Mata Uang */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mata Uang</label>
-                  <input type="text" value={formNonPUPN.mataUang} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, mataUang: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                  <CurrencySelect
+                    value={formNonPUPN.mataUang}
+                    onChange={(code) => setFormNonPUPN({ ...formNonPUPN, mataUang: code })}
+                  />
                 </div>
               </div>
 
-              {/* Pembayaran */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Pembayaran</label>
-                {formNonPUPN.pembayaran.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 mb-2">
-                    <div className="flex-1">
-                      <input type="date" value={p.tanggal} onChange={(e) => updatePembayaran(p.id, "tanggal", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-                    </div>
-                    <div className="flex-1 relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">Rp</span>
-                      <input type="number" value={p.nilai || ""} onChange={(e) => updatePembayaran(p.id, "nilai", parseInt(e.target.value) || 0)} className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="0" />
-                    </div>
-                    <button type="button" onClick={() => removePembayaran(p.id)} className="text-red-500 hover:text-red-700 p-1"><Minus className="w-4 h-4" /></button>
+              {/* ===== SECTION PEMBAYARAN (improved UX) ===== */}
+              <div className="rounded-xl border border-gray-200 overflow-hidden">
+                {/* Header section */}
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-semibold text-gray-700">Riwayat Pembayaran</span>
+                    {formNonPUPN.pembayaran.length > 0 && (
+                      <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">
+                        {formNonPUPN.pembayaran.length} data
+                      </span>
+                    )}
                   </div>
-                ))}
-                <button type="button" onClick={addPembayaran} className="mt-1 flex items-center gap-1 text-sm text-primary hover:text-primary-dark"><Plus className="w-4 h-4" /> Tambah Pembayaran</button>
+                  <button
+                    type="button"
+                    onClick={addPembayaran}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark transition shadow-sm"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Tambah
+                  </button>
+                </div>
+
+                {/* List pembayaran */}
+                {formNonPUPN.pembayaran.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2 bg-white">
+                    <DollarSign className="w-8 h-8 text-gray-200" />
+                    <p className="text-sm">Belum ada riwayat pembayaran</p>
+                    <button
+                      type="button"
+                      onClick={addPembayaran}
+                      className="mt-1 text-xs text-primary hover:text-primary-dark underline underline-offset-2"
+                    >
+                      + Tambah pembayaran pertama
+                    </button>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 bg-white">
+                    {/* Header kolom */}
+                    <div className="grid grid-cols-[32px_1fr_1fr_36px] gap-3 px-4 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider bg-gray-50/70">
+                      <span className="text-center">#</span>
+                      <span>Tanggal Pembayaran</span>
+                      <span>Nominal (Rp)</span>
+                      <span></span>
+                    </div>
+                    {formNonPUPN.pembayaran.map((p, idx) => (
+                      <div key={p.id} className="grid grid-cols-[32px_1fr_1fr_36px] gap-3 items-center px-4 py-3 hover:bg-gray-50/60 transition group">
+                        {/* Nomor urut */}
+                        <span className="text-xs font-bold text-gray-300 text-center">{idx + 1}</span>
+                        {/* Tanggal */}
+                        <div className="relative">
+                          <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                          <input
+                            type="date"
+                            value={p.tanggal}
+                            onChange={(e) => updatePembayaran(p.id, "tanggal", e.target.value)}
+                            className="w-full pl-8 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition bg-white"
+                          />
+                        </div>
+                        {/* Nilai dengan format ribuan */}
+                        <RupiahInput
+                          value={p.nilai}
+                          onChange={(v) => updatePembayaran(p.id, "nilai", v)}
+                          placeholder="0"
+                        />
+                        {/* Hapus */}
+                        <button
+                          type="button"
+                          onClick={() => removePembayaran(p.id)}
+                          title="Hapus baris"
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Footer: ringkasan total pembayaran */}
+                {formNonPUPN.pembayaran.length > 0 && (
+                  <div className="flex items-center justify-end gap-2 px-4 py-2.5 bg-gray-50 border-t border-gray-200">
+                    <span className="text-xs text-gray-500">Total Pembayaran:</span>
+                    <span className="text-sm font-bold text-primary">
+                      Rp {totalPembayaran.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Ringkasan keuangan */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Total Pembayaran</label>
-                  <div className="text-sm font-semibold text-gray-800">Rp {totalPembayaran.toLocaleString("id-ID")}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Total Pembayaran</p>
+                  <p className="text-base font-bold text-gray-800">Rp {totalPembayaran.toLocaleString("id-ID")}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Saldo Utang</label>
-                  <div className="text-sm font-semibold text-gray-800">Rp {saldoUtang.toLocaleString("id-ID")}</div>
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Saldo Utang</p>
+                  <p className="text-base font-bold text-gray-800">Rp {saldoUtang.toLocaleString("id-ID")}</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Sisa Utang</label>
-                  <div className="text-sm font-semibold text-primary">Rp {sisaUtang.toLocaleString("id-ID")}</div>
+                <div className={`rounded-xl p-4 border ${sisaUtang > 0 ? "bg-red-50 border-red-100" : "bg-green-50 border-green-100"}`}>
+                  <p className="text-xs font-medium text-gray-500 mb-1">Sisa Utang</p>
+                  <p className={`text-base font-bold ${sisaUtang > 0 ? "text-red-600" : "text-green-600"}`}>
+                    Rp {sisaUtang.toLocaleString("id-ID")}
+                  </p>
                 </div>
               </div>
 
               {usiaWarning && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 text-sm text-yellow-800 flex gap-2">
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-3 text-sm text-yellow-800 flex gap-2 rounded-r-lg">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   {usiaWarning}
                 </div>
@@ -567,17 +757,17 @@ export default function FormPenanggungUtangModal({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-                <textarea rows={2} value={formNonPUPN.keterangan} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, keterangan: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg" placeholder="Keberadaan, kemampuan bayar, kondisi barang jaminan, dll."></textarea>
+                <textarea rows={2} value={formNonPUPN.keterangan} onChange={(e) => setFormNonPUPN({ ...formNonPUPN, keterangan: e.target.value })} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition text-sm" placeholder="Keberadaan, kemampuan bayar, kondisi barang jaminan, dll." />
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-xl text-xs text-blue-800 flex gap-2">
-                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div className="bg-blue-50 p-4 rounded-xl text-xs text-blue-800 flex gap-2 border border-blue-100">
+                <Info className="w-4 h-4 flex-shrink-0 mt-0.5 text-blue-500" />
                 <div>
                   <p className="font-semibold">Persyaratan usia piutang (Lampiran II E):</p>
-                  <ul className="list-disc list-inside mt-1">
+                  <ul className="list-disc list-inside mt-1 space-y-0.5">
                     <li>≤ Rp8 juta → usia &gt; 5 tahun</li>
-                    <li>Rp8 juta - Rp50 juta → usia &gt; 7 tahun</li>
-                    <li>Rp50 juta - Rp1 Miliar → usia &gt; 10 tahun</li>
+                    <li>Rp8 juta – Rp50 juta → usia &gt; 7 tahun</li>
+                    <li>Rp50 juta – Rp1 Miliar → usia &gt; 10 tahun</li>
                     <li>&gt; Rp1 Miliar → usia &gt; 10 tahun + kerjasama dengan Kanwil DJKN</li>
                   </ul>
                 </div>
@@ -591,9 +781,7 @@ export default function FormPenanggungUtangModal({
               <Paperclip className="w-5 h-5 text-primary" /> Dokumen Persyaratan
             </h3>
             <p className="text-sm text-gray-500 mb-4">
-              {jalur === "PUPN"
-                ? "Unggah dokumen pendukung dalam format PDF. Berita Acara Lapangan wajib diisi."
-                : "Unggah minimal satu dokumen pendukung. Surat Tagihan wajib diisi. Kerjasama DJKN wajib jika sisa utang > 1 M."}
+              {jalur === "PUPN" ? "Unggah dokumen pendukung dalam format PDF. Berita Acara Lapangan wajib diisi." : "Unggah minimal satu dokumen pendukung. Surat Tagihan wajib diisi. Kerjasama DJKN wajib jika sisa utang > 1 M."}
             </p>
             {errors.dokumen && (
               <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2 mb-4">
@@ -627,8 +815,8 @@ export default function FormPenanggungUtangModal({
 
           {/* Tombol Aksi */}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">Batal</button>
-            <button type="submit" className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition font-medium flex items-center gap-2 shadow-sm">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium text-sm">Batal</button>
+            <button type="submit" className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition font-medium flex items-center gap-2 shadow-sm text-sm">
               <User className="w-4 h-4" />
               {initialData ? "Simpan Perubahan" : "Simpan Penanggung Utang"}
             </button>

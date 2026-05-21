@@ -1,24 +1,21 @@
+// components/SidebarMenu.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard,
-  FilePlus,
-  FolderOpen,
-  Users,
+  Zap,
   History,
+  Tag,
+  Package,
+  Archive,
+  MessageSquare,
+  Settings,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   ShieldCheck,
   CircleCheckBig,
-  Send,
-  FileSignature,
-  BarChart3,
-  Search,
-  ClipboardCheck,
-  Stamp,
-  FileWarning,
-  LogOut,
-  PanelLeftOpen,
-  PanelLeftClose,
+  FileText,
 } from "lucide-react";
 
 interface SidebarMenuProps {
@@ -26,6 +23,13 @@ interface SidebarMenuProps {
   activeMenu: string;
   onMenuChange: (menuId: string) => void;
 }
+
+type MenuItem = {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  badge?: string;
+};
 
 export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarMenuProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -35,9 +39,7 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
     const checkScreen = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setIsCollapsed(true);
-      }
+      if (mobile) setIsCollapsed(true);
     };
     checkScreen();
     window.addEventListener("resize", checkScreen);
@@ -45,140 +47,149 @@ export default function SidebarMenu({ role, activeMenu, onMenuChange }: SidebarM
   }, []);
 
   const toggleSidebar = () => {
-    if (!isMobile) {
-      setIsCollapsed((prev) => !prev);
-    }
+    if (!isMobile) setIsCollapsed((prev) => !prev);
   };
 
-  // SKPD menus: "Nominatif Penanggung Utang" dan "Riwayat Pengajuan" dihapus
-  const skpdMenus = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "ajukan", label: "Ajukan Penghapusan Piutang", icon: FilePlus, badge: null },
-    { id: "dokumen", label: "Dokumen Penghapusan Piutang", icon: FolderOpen, badge: null },
-    // { id: "nominatif", label: "Nominatif Penanggung Utang", icon: Users, badge: null },  // dihapus
-    // { id: "riwayat", label: "Riwayat Pengajuan", icon: History, badge: null },            // dihapus
-  ];
+  let menus: MenuItem[] = [];
 
-  const bpkadMenus = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "verifikasiPUPN", label: "Verifikasi (Jalur PUPN)", icon: ShieldCheck, badge: "TPUPPD" },
-    { id: "verifikasiNonPUPN", label: "Verifikasi (Jalur Non-PUPN)", icon: CircleCheckBig, badge: "PPKD" },
-    { id: "usulPUPN", label: "Usul ke PUPN", icon: Send, badge: null },
-    { id: "terbitPPDTO", label: "Terbitkan PPDTO", icon: FileSignature, badge: null },
-    { id: "laporan", label: "Laporan Monitoring", icon: BarChart3, badge: null },
-  ];
+  if (role === "BPKAD") {
+    menus = [
+      { id: "verifikasiPUPN", label: "Verifikasi PUPN", icon: ShieldCheck, badge: "TPUPPD" },
+      { id: "verifikasiNonPUPN", label: "Verifikasi Non‑PUPN", icon: CircleCheckBig, badge: "PPKD" },
+    ];
+  } else if (role === "SKPD") {
+    menus = [
+      { id: "ajukan", label: "Ajukan", icon: ShieldCheck },
+      { id: "dokumen", label: "Dokumen", icon: FileText },
+    ];
+  } else if (role === "INSPEKTORAT") {
+    menus = [
+      { id: "reviuPUPN", label: "Reviu PUPN", icon: ShieldCheck },
+      { id: "reviuNonPUPN", label: "Reviu Non‑PUPN", icon: CircleCheckBig },
+    ];
+  }
 
-  const inspektoratMenus = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "reviuPUPN", label: "Reviu Berkas (Jalur PUPN)", icon: Search, badge: null },
-    { id: "reviuNonPUPN", label: "Reviu Berkas (Non-PUPN)", icon: ClipboardCheck, badge: null },
-    { id: "persetujuan", label: "Persetujuan Penghapusan Bersyarat", icon: Stamp, badge: null },
-    { id: "rekomendasi", label: "Rekomendasi / Penolakan", icon: FileWarning, badge: null },
-  ];
-
-  let menus = [];
-  if (role === "SKPD") menus = skpdMenus;
-  else if (role === "BPKAD") menus = bpkadMenus;
-  else menus = inspektoratMenus;
+  const roleLabel = role === "SKPD" ? "SKPD" : role === "BPKAD" ? "BPKAD" : "Inspektorat";
+  const roleSubLabel = role === "SKPD" ? "Pengguna Anggaran" : role === "BPKAD" ? "PPKD / TPUPPD" : "Daerah";
 
   return (
     <aside
-      className={`bg-primary-deep text-white flex flex-col h-screen sticky top-0 overflow-y-auto shadow-lg transition-all duration-300 ${
-        isCollapsed ? "w-20" : "w-64"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+      className={`bg-white text-gray-700 flex flex-col h-screen sticky top-0 overflow-y-auto transition-all duration-300 border-r border-gray-100 ${
+        isCollapsed ? "w-[72px]" : "w-[220px]"
       }`}
     >
-      {/* Logo / Brand */}
-      <div className={`px-4 py-5 border-b border-white/10 flex ${isCollapsed ? "justify-center" : ""}`}>
-        <div className="flex items-center gap-2">
-          <div className="bg-white/20 p-1.5 rounded-md">
-            <LayoutDashboard className="w-5 h-5 text-white" strokeWidth={2.5} />
-          </div>
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-white">SIMPUL KENDAL</h1>
-              <p className="text-xs text-white/60">Piutang Daerah</p>
-            </div>
-          )}
+      {/* Logo */}
+      <div className={`flex items-center gap-2.5 px-5 py-5 ${isCollapsed ? "justify-center px-0" : ""}`}>
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-rose-500 shadow-md shadow-rose-200 flex-shrink-0">
+          <Zap className="w-5 h-5 text-white" fill="white" strokeWidth={0} />
         </div>
+        {!isCollapsed && (
+          <div className="leading-tight">
+            <span className="text-[15px] font-bold text-gray-800 tracking-tight">SiPuspita</span>
+            <p className="text-[10px] text-gray-400 font-medium">Kab. Kendal</p>
+          </div>
+        )}
       </div>
 
+      {/* Role chip */}
+      {!isCollapsed && (
+        <div className="mx-4 mb-4 px-3 py-2 bg-rose-50 rounded-xl border border-rose-100">
+          <p className="text-[11px] font-semibold text-rose-500 uppercase tracking-wider">{roleLabel}</p>
+          <p className="text-[11px] text-gray-400">{roleSubLabel}</p>
+        </div>
+      )}
+
+      {/* Menu label */}
+      {!isCollapsed && (
+        <p className="px-5 mb-2 text-[10px] font-semibold text-gray-300 uppercase tracking-widest">Menu</p>
+      )}
+
       {/* Menu Items */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 space-y-0.5">
         {menus.map((item) => {
           const Icon = item.icon;
           const isActive = activeMenu === item.id;
-
-          if (isCollapsed) {
-            return (
-              <button
-                key={item.id}
-                onClick={() => onMenuChange(item.id)}
-                title={item.label}
-                className="w-full flex items-center justify-center px-0 py-3 rounded-md text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition cursor-pointer"
-              >
-                <Icon className="w-5 h-5 text-white/80" strokeWidth={2.5} />
-              </button>
-            );
-          }
 
           return (
             <button
               key={item.id}
               onClick={() => onMenuChange(item.id)}
-              className={`w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 text-left cursor-pointer ${
-                isActive ? "bg-white/20 text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
-              }`}
+              title={isCollapsed ? item.label : undefined}
+              className={`w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer
+                ${isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"}
+                ${isActive
+                  ? "bg-rose-50 text-rose-500"
+                  : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                }`}
             >
               <Icon
-                className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-white" : "text-white/80"}`}
-                strokeWidth={2.5}
+                className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-rose-500" : "text-gray-400"}`}
+                strokeWidth={isActive ? 2.5 : 2}
               />
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.badge && (
-                <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold">
-                  {item.badge}
-                </span>
+              {!isCollapsed && (
+                <>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.badge && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                      isActive ? "bg-rose-100 text-rose-500" : "bg-gray-100 text-gray-400"
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                  {isActive && (
+                    <div className="w-1.5 h-5 bg-rose-400 rounded-full flex-shrink-0" />
+                  )}
+                </>
               )}
-              {isActive && <div className="w-1 h-6 bg-white rounded-full flex-shrink-0 ml-1" />}
             </button>
           );
         })}
       </nav>
 
-      {/* Footer: Logout + Toggle Manual (Desktop Only) */}
-      <div className="p-3 border-t border-white/10 space-y-3">
-        {isCollapsed ? (
-          <button
-            onClick={() => alert("Logout")}
-            title="Logout"
-            className="w-full flex items-center justify-center py-3 rounded-md text-sm font-medium text-white/70 hover:bg-red-500/20 hover:text-red-300 transition cursor-pointer"
-          >
-            <LogOut className="w-5 h-5" strokeWidth={2.5} />
-          </button>
-        ) : (
-          <button
-            onClick={() => alert("Logout")}
-            className="w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/70 hover:bg-red-500/20 hover:text-red-300 transition text-left cursor-pointer"
-          >
-            <LogOut className="w-5 h-5 flex-shrink-0" strokeWidth={2.5} />
-            <span>Logout</span>
-          </button>
-        )}
+      {/* Divider */}
+      <div className="mx-4 my-3 border-t border-gray-100" />
 
+      {/* Footer */}
+      <div className="px-3 pb-5 space-y-0.5">
+        {/* Settings */}
+        <button
+          title={isCollapsed ? "Pengaturan" : undefined}
+          className={`w-full flex items-center gap-3 rounded-xl text-sm font-medium text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition cursor-pointer
+            ${isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"}`}
+        >
+          <Settings className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} />
+          {!isCollapsed && <span>Pengaturan</span>}
+        </button>
+
+        {/* Logout */}
+        <button
+          onClick={() => alert("Logout")}
+          title={isCollapsed ? "Logout" : undefined}
+          className={`w-full flex items-center gap-3 rounded-xl text-sm font-medium text-gray-400 hover:bg-red-50 hover:text-red-400 transition cursor-pointer
+            ${isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"}`}
+        >
+          <LogOut className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={2} />
+          {!isCollapsed && <span>Logout</span>}
+        </button>
+
+        {/* Collapse toggle */}
         {!isMobile && (
           <button
             onClick={toggleSidebar}
-            className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-start"} gap-3 py-3 rounded-md text-sm font-medium text-white/70 hover:bg-white/10 transition cursor-pointer select-none`}
-            title={isCollapsed ? "Perluas Sidebar" : "Ciutkan Sidebar"}
+            title={isCollapsed ? "Perluas" : "Ciutkan"}
+            className={`w-full flex items-center gap-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-50 hover:text-gray-500 transition cursor-pointer select-none
+              ${isCollapsed ? "justify-center px-0 py-3" : "px-3 py-2.5"}`}
           >
-            {isCollapsed ? (
-              <PanelLeftOpen className="w-5 h-5" strokeWidth={2.5} />
-            ) : (
-              <>
-                <PanelLeftClose className="w-5 h-5" strokeWidth={2.5} />
-                <span className="ml-2">Ciutkan</span>
-              </>
-            )}
+            {isCollapsed
+              ? <PanelLeftOpen className="w-[18px] h-[18px]" strokeWidth={2} />
+              : (
+                <>
+                  <PanelLeftClose className="w-[18px] h-[18px]" strokeWidth={2} />
+                  <span>Ciutkan</span>
+                </>
+              )
+            }
           </button>
         )}
       </div>

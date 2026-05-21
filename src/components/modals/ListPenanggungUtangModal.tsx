@@ -14,7 +14,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { DokumenInduk } from "@/components/contents/PengajuanPenghapusanPiutangContent";
+import { DokumenInduk } from "@/components/contents/skpd/PengajuanPenghapusanPiutangContent";
 import FormPenanggungUtangModal, {
   FormDataPUPN,
   FormDataNonPUPN,

@@ -103,11 +103,24 @@ export default function DokumenPenghapusanPiutangContent({
                   <td className="px-4 py-2 text-center">{nominatifCount}</td>
                   <td className="px-4 py-2 text-center">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      doc.status === "SUBMITTED" 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-yellow-100 text-yellow-700"
+                      doc.status === "DRAFT"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : doc.status === "MENUNGGU_VERIFIKASI_PPKD"
+                        ? "bg-blue-100 text-blue-700"
+                        : doc.status === "MENUNGGU_REVIU_INSPEKTORAT"
+                        ? "bg-purple-100 text-purple-700"
+                        : doc.status === "DITOLAK_PPKD"
+                        ? "bg-red-100 text-red-700"
+                        : doc.status === "REVISI_SKPD"
+                        ? "bg-orange-100 text-orange-700"
+                        : "bg-gray-100 text-gray-600"
                     }`}>
-                      {doc.status === "SUBMITTED" ? "Terkirim" : "Draft"}
+                      {doc.status === "DRAFT" && "Draft"}
+                      {doc.status === "MENUNGGU_VERIFIKASI_PPKD" && "Menunggu Verifikasi PPKD"}
+                      {doc.status === "MENUNGGU_REVIU_INSPEKTORAT" && "Menunggu Reviu Inspektorat"}
+                      {doc.status === "DITOLAK_PPKD" && "Ditolak PPKD"}
+                      {doc.status === "REVISI_SKPD" && "Perlu Revisi"}
+                      {!["DRAFT","MENUNGGU_VERIFIKASI_PPKD","MENUNGGU_REVIU_INSPEKTORAT","DITOLAK_PPKD","REVISI_SKPD"].includes(doc.status) && doc.status}
                     </span>
                   </td>
                   <td className="px-4 py-2 text-center">
