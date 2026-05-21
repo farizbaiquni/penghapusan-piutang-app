@@ -12,6 +12,9 @@ import DokumenPenghapusanPiutangContent from "@/components/contents/skpd/Dokumen
 import VerifikasiPUPNContent, {
   VerifikasiPUPNData,
 } from "@/components/contents/bpkad/VerifikasiPUPNContent";
+import VerifikasiNonPUPNContent, {
+  VerifikasiNonPUPNData,
+} from "@/components/contents/bpkad/VerifikasiNonPUPNContent";
 import { UsulanPiutang } from "@/lib/pdfGenerator";
 import {
   FormDataPUPN,
@@ -38,6 +41,10 @@ export default function HomePage() {
   // Menyimpan data verifikasi PUPN per dokumen
   const [verifikasiPUPNMap, setVerifikasiPUPNMap] = useState<
     Record<number, VerifikasiPUPNData>
+  >({});
+  // Menyimpan data verifikasi Non-PUPN per dokumen
+  const [verifikasiNonPUPNMap, setVerifikasiNonPUPNMap] = useState<
+    Record<number, VerifikasiNonPUPNData>
   >({});
 
   // ---- State untuk modal konfirmasi navigasi ----
@@ -156,6 +163,11 @@ export default function HomePage() {
     });
     // Hapus data verifikasi jika ada
     setVerifikasiPUPNMap((prev) => {
+      const updated = { ...prev };
+      delete updated[id];
+      return updated;
+    });
+    setVerifikasiNonPUPNMap((prev) => {
       const updated = { ...prev };
       delete updated[id];
       return updated;
@@ -305,12 +317,50 @@ export default function HomePage() {
             />
           );
         }
-        case "verifikasiNonPUPN":
-          return (
-            <div className="p-6 text-center text-gray-500">
-              Verifikasi Berkas (Jalur Non‑PUPN) – Dalam Pengembangan
-            </div>
+        case "verifikasiNonPUPN": {
+          // Filter dokumen Non-PUPN yang menunggu verifikasi
+          const dokumenNonPUPN = dokumenIndukList.filter(
+            (doc) =>
+              doc.jenisPengajuan === "NON-PUPN" &&
+              (doc.status === "DIAJUKAN" ||
+                doc.status === "MENUNGGU_VERIFIKASI_PPKD")
           );
+          return (
+            <VerifikasiNonPUPNContent
+              dokumenIndukList={dokumenNonPUPN}
+              nominatifMap={nominatifMap as Record<number, FormDataNonPUPN[]>}
+              onTerima={(dokumenId, data) => {
+                // Simpan data verifikasi Non-PUPN
+                setVerifikasiNonPUPNMap((prev) => ({
+                  ...prev,
+                  [dokumenId]: data,
+                }));
+                // Ubah status menjadi MENUNGGU_REVIU_INSPEKTORAT
+                setDokumenIndukList((prev) =>
+                  prev.map((d) =>
+                    d.id === dokumenId
+                      ? { ...d, status: "MENUNGGU_REVIU_INSPEKTORAT" }
+                      : d
+                  )
+                );
+              }}
+              onTolak={(dokumenId, data, alasan) => {
+                setVerifikasiNonPUPNMap((prev) => ({
+                  ...prev,
+                  [dokumenId]: data,
+                }));
+                setDokumenIndukList((prev) =>
+                  prev.map((d) =>
+                    d.id === dokumenId
+                      ? { ...d, status: "DITOLAK_PPKD" }
+                      : d
+                  )
+                );
+                console.log("Alasan penolakan Non-PUPN:", alasan);
+              }}
+            />
+          );
+        }
         case "pengaturan":
           return (
             <SettingsContent

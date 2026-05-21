@@ -24,6 +24,7 @@ import {
   Trash2,
   Eye,
   CircleDot,
+  CircleUser,
 } from "lucide-react";
 
 import { DokumenInduk } from "@/components/contents/skpd/PengajuanPenghapusanPiutangContent";
@@ -446,7 +447,7 @@ export default function VerifikasiPUPNContent({
                   onClick={() =>
                     handleSelectDoc(doc.id)
                   }
-                  className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer p-5"
+                  className="group bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all cursor-pointer p-5"
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center font-bold text-primary flex-shrink-0">
@@ -499,7 +500,7 @@ export default function VerifikasiPUPNContent({
                         Verifikasi
                       </span>
 
-                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition">
                         <ChevronRight className="w-4 h-4" />
                       </div>
                     </div>
@@ -523,7 +524,7 @@ export default function VerifikasiPUPNContent({
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 transition"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-gray-500 hover:bg-gray-100 transition"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -539,7 +540,7 @@ export default function VerifikasiPUPNContent({
           </div>
 
           {/* Progress */}
-          <div className="hidden sm:flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+          <div className="hidden sm:flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
             <ClipboardCheck className="w-4 h-4 text-primary" />
 
             <div className="w-28 h-2 rounded-full bg-gray-200 overflow-hidden">
@@ -599,13 +600,13 @@ export default function VerifikasiPUPNContent({
         {/* SIDEBAR */}
 
         <div className="xl:w-72 flex-shrink-0">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden sticky top-[80px]">
+          <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden sticky top-[80px]">
             <div className="px-4 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-primary" />
 
                 <span className="text-sm font-semibold text-gray-700">
-                  Daftar Nominatif
+                  Daftar Penanggung Utang
                 </span>
               </div>
             </div>
@@ -666,7 +667,7 @@ export default function VerifikasiPUPNContent({
                       <div className="flex items-start gap-3">
                         <div
                           className={`
-                            w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0
+                            w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
                             ${
                               isActive
                                 ? "bg-primary text-white"
@@ -735,20 +736,20 @@ export default function VerifikasiPUPNContent({
 
           {activeNominatif && (
             <>
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-primary" />
+                    <CircleUser className="w-7 h-7 text-primary" /> 
                   </div>
 
                   <div>
-                    <p className="text-[11px] text-gray-600 uppercase tracking-wider">
-                      Nominatif{" "}
+                    <p className="font-semibold text-gray-700 tracking-wider">
+                      Penanggung Utang Ke-
                       {activeNomIdx +
                         1}
                     </p>
 
-                    <p className="text-base font-bold text-gray-800">
+                    <p className="text-base text-gray-800">
                       {
                         activeNominatif.nama
                       }
@@ -829,12 +830,11 @@ export default function VerifikasiPUPNContent({
 
               {/* CHECKLIST */}
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-burgundy-400">
                   <div className="flex items-center gap-2">
-                    <ClipboardCheck className="w-4 h-4 text-primary" />
-
-                    <span className="text-sm font-semibold text-gray-700">
+                    <ClipboardCheck className="w-7 h-7 text-primary" />
+                    <span className="font-semibold text-gray-700">
                       Kelengkapan
                       Dokumen
                     </span>
@@ -869,7 +869,7 @@ export default function VerifikasiPUPNContent({
                             doc.id
                           }
                           className={`
-                            rounded-2xl border transition-all
+                            rounded-2xl border border-gray-300 transition-all
                             ${
                               val ===
                               "Sesuai"
@@ -889,7 +889,7 @@ export default function VerifikasiPUPNContent({
                               <div className="flex items-start gap-3 flex-1">
                                 <div
                                   className={`
-                                    w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0
+                                    w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0
                                     ${
                                       val ===
                                       "Sesuai"
@@ -927,7 +927,7 @@ export default function VerifikasiPUPNContent({
                                 {/* Preview */}
 
                                 <button
-                                  className="w-10 h-10 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center"
+                                  className="w-10 h-10 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center"
                                   title="Preview"
                                 >
                                   <Eye className="w-4 h-4 text-gray-500" />
@@ -935,7 +935,7 @@ export default function VerifikasiPUPNContent({
 
                                 {/* Segmented */}
 
-                                <div className="flex rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                                <div className="flex rounded-lg overflow-hidden border border-gray-200 shadow-sm">
 
                                   <button
                                     onClick={() =>
@@ -1015,7 +1015,7 @@ export default function VerifikasiPUPNContent({
                                     )
                                   }
                                   placeholder="Tuliskan ketidaksesuaian..."
-                                  className="w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition"
+                                  className="w-full rounded-lg border border-red-200 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-400 transition"
                                 />
                               </div>
                             )}
@@ -1029,9 +1029,9 @@ export default function VerifikasiPUPNContent({
 
               {/* FILE */}
 
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                  <Paperclip className="w-4 h-4 text-primary" />
+              <div className="bg-white rounded-lg border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <Paperclip className="w-7 h-7 text-primary" />
 
                   <span className="text-sm font-semibold text-gray-700">
                     Upload BA Hasil
@@ -1074,7 +1074,7 @@ export default function VerifikasiPUPNContent({
                   </label>
 
                   {namaFileBa && (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mt-3 text-xs text-emerald-800">
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 mt-3 text-xs text-emerald-800">
                       <span className="flex items-center gap-2 truncate font-medium">
                         <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
 
@@ -1170,7 +1170,7 @@ export default function VerifikasiPUPNContent({
                 onClick={
                   handleTolak
                 }
-                className="flex-1 sm:flex-none h-11 px-5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none h-11 px-5 rounded-lg border border-red-200 bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition flex items-center justify-center gap-2"
               >
                 <XCircle className="w-4 h-4" />
 
@@ -1181,7 +1181,7 @@ export default function VerifikasiPUPNContent({
                 onClick={
                   handleTerima
                 }
-                className="flex-1 sm:flex-none h-11 px-6 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
 
@@ -1210,7 +1210,7 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
       <div className="flex items-center gap-2 text-gray-600 mb-2">
         {icon}
         
